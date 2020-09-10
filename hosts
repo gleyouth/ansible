@@ -6,6 +6,11 @@
 192.168.148.91 hostname=k8s-node1
 192.168.148.92 hostname=k8s-node2
 
+[etcd]
+192.168.148.90 etcd_name=etcd-1
+192.168.148.91 etcd_name=etcd-2
+192.168.148.92 etcd_name=etcd-3
+
 [k8s:children]
 master
 node

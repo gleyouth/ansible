@@ -13,3 +13,30 @@
   unarchive: src={{ item }} dest={{ tem_dir }}
   with_fileglob: 
     - "{{ software_dir }}/etcd-v*.tar.gz"
+
+- name: Modile etcd binary file
+  shell: cp -rf {{ tem_dir }}/etcd-v*/{etcd,etcdctl} {{ etcd_work_dir }}/bin
+
+- name: Distribute the certificate
+  copy: src=etcd_cert/{{ item }} dest={{ etcd_work_dir }}/ssl
+  with_items: 
+    - ca.pem
+    - server.pem
+    - server-key.pem
+
+- name: Distribute etcd configuration files
+  template: src=etcd.conf.j2 dest={{ etcd_work_dir }}/cfg/etcd.conf
+
+- name: Distribute service files
+  template: src=etcd.service.j2 dest=/usr/lib/systemd/system/etcd.service
+
+- name: Start etcd
+  systemd: name=etcd state=restarted enabled=yes daemon_reload=yes
+
+- name: Distribute etcd script
+  template: src=etcd.sh.j2 dest={{ tem_dir }}/etcd.sh mode=u+x
+
+- name: Get etcd cluster status
+  shell: /bin/bash {{ tem_dir }}/etcd.sh
+  register: status
+- debug: var=status.stderr_lines

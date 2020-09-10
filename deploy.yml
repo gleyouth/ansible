@@ -13,10 +13,16 @@
 #    - certs
 #  tags: certs
 
-- name: 3.install docker
-  gather_facts: false
-  hosts: k8s
-  roles: 
-    - docker
-  tags: docker
+#- name: 3.install docker
+#  gather_facts: false
+#  hosts: k8s
+#  roles: 
+#    - docker
+#  tags: docker
 
+- name: 4.Deploy etcd
+  gather_facts: false
+  hosts: etcd
+  roles: 
+    - etcd
+  tags: etcd
