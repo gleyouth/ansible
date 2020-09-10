@@ -1,0 +1,15 @@
+---
+- name: Create working directory
+  file: dest={{ etcd_work_dir }}/{{ item }} state=directory
+  with_items: 
+    - bin
+    - cfg
+    - ssl
+
+- name: Create a temporary directory
+  file: dest={{ tem_dir }} state=directory
+
+- name: Distribute and decompress etcd binary package
+  unarchive: src={{ item }} dest={{ tem_dir }}
+  with_fileglob: 
+    - "{{ software_dir }}/etcd-v*.tar.gz"

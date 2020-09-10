@@ -14,10 +14,10 @@
   copy: src=docker.service dest=/usr/lib/systemd/system/
 
 - name: Create a directory
-  file: dest=/etc/docker state=directory
+  file: dest={{ docker_work_dir }} state=directory
 
 - name: Configuration docker
-  copy: src=daemon.json dest=/etc/docker
+  copy: src=daemon.json dest={{ docker_work_dir }}
 
 - name: Start and enable docker
   systemd: name=docker state=restarted enabled=yes daemon_reload=yes

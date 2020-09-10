@@ -6,17 +6,17 @@
 #    - common
 #  tags: common
 
-- name: 2.Signed certs
-  gather_facts: false
-  hosts: localhost
-  roles: 
-    - certs
-  tags: certs
-
-#- name: 3.install docker
+#- name: 2.Signed certs
 #  gather_facts: false
-#  hosts: k8s
+#  hosts: localhost
 #  roles: 
-#    - docker
-#  tags: docker
+#    - certs
+#  tags: certs
+
+- name: 3.install docker
+  gather_facts: false
+  hosts: k8s
+  roles: 
+    - docker
+  tags: docker
 

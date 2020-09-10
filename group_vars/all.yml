@@ -1,6 +1,8 @@
 #install directory
 software_dir: '/root/binary_pkg'
 docker_work_dir: '/etc/docker'
+etcd_work_dir: '/opt/etcd'
+k8s_work_dir: '/opt/kubernetes'
 tem_dir: '/tmp/k8s'
 
 cert_hosts: 
