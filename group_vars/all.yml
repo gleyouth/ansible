@@ -1,0 +1,14 @@
+#install directory
+software_dir: '/root/binary_pkg'
+docker_work_dir: '/etc/docker'
+tem_dir: '/tmp/k8s'
+
+cert_hosts: 
+  k8s: 
+    - 192.168.148.90
+    - 192.168.148.91
+    - 192.168.148.92
+  etcd: 
+    - 192.168.148.90
+    - 192.168.148.91
+    - 192.168.148.92

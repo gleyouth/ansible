@@ -1,0 +1,42 @@
+---
+- name: Get working directory
+  shell: pwd | sed 's#roles/certs##'
+  register: pwd_dir
+
+- name: Create working directory
+  file: dest={{ pwd_dir.stdout }}/ssl/{{ item }} state=directory
+  with_items:
+    - etcd
+    - k8s
+
+- name: Ready cfssl tool
+  unarchive: src={{ software_dir }}/cfssl.tar.gz dest=/usr/bin/ mode=u+x
+
+
+- name: Ready etcd certs
+  template: src=etcd/{{ item }} dest={{ pwd_dir.stdout }}/ssl/etcd/{{ item.split('.')[:-1]|join('.') }}
+  with_items: 
+    - ca-config.json.j2
+    - ca-csr.json.j2
+    - server-csr.json.j2 
+
+- name: Ready etcd certs script
+  copy: src=generate_etcd_cert.sh dest={{ pwd_dir.stdout }}/ssl/etcd mode=u+x
+
+- name: Carried out script
+  shell: cd {{ pwd_dir.stdout }}/ssl/etcd && /bin/bash generate_etcd_cert.sh
+
+- name: Ready k8s certs
+  template: src=k8s/{{ item }} dest={{ pwd_dir.stdout }}/ssl/k8s/{{ item.split('.')[:-1]|join('.') }} 
+  with_items: 
+    - ca-config.json.j2
+    - ca-csr.json.j2
+    - server-csr.json.j2
+    - admin-csr.json.j2
+    - kube-proxy-csr.json.j2
+
+- name: Ready k8s certs script
+  copy: src=generate_k8s_cert.sh dest={{ pwd_dir.stdout }}/ssl/k8s mode=u+x
+
+- name: Carried out script
+  shell: cd {{ pwd_dir.stdout }}/ssl/k8s && /bin/bash generate_k8s_cert.sh
