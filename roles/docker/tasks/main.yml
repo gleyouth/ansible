@@ -1,0 +1,28 @@
+---
+- name: create a temporary directory
+  file: dest={{ tem_dir }} state=directory
+
+- name: Distribute and unzip the docker binary package
+  unarchive: src={{ item }} dest={{ tem_dir }}
+  with_fileglob: 
+    - "{{ software_dir }}/docker-*.tgz"
+
+- name: Move docker binary file
+  shell: cp -rf {{ tem_dir }}/docker/* /usr/bin
+
+- name: Dirstribute service file
+  copy: src=docker.service dest=/usr/lib/systemd/system/
+
+- name: Create a directory
+  file: dest=/etc/docker state=directory
+
+- name: Configuration docker
+  copy: src=daemon.json dest=/etc/docker
+
+- name: Start and enable docker
+  systemd: name=docker state=restarted enabled=yes daemon_reload=yes
+
+- name: Check status
+  shell: docker info
+  register: docker
+- debug: var=docker.stdout_lines
