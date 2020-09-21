@@ -1,0 +1,58 @@
+---
+- name: Allow node join the cluster
+  ignore_errors: yes
+  shell: kubectl certificate approve $(kubectl get csr |awk 'NR!=1{print $1}')
+
+- name: Copy Flannel YAML file
+  copy: src={{ item }} dest={{ tem_dir }}
+  with_items: 
+    - kube-flannel.yaml
+
+- name: Deploy Flannel
+  ignore_errors: yes
+  shell: kubectl apply -f {{ tem_dir }}/kube-flannel.yaml
+
+- name: Copy CoreDNS,Dashboard,Ingress YAML file
+  copy: src={{ item }} dest={{ tem_dir }}
+  with_items: 
+    - coredns.yaml
+    - kubernetes-dashboard.yaml
+    - ingress-controller.yaml
+
+- name: Deploy CoreDNS,Dashboard,Ingress 
+  ignore_errors: yes
+  shell: |
+         cd {{ tem_dir }}
+         kubectl apply -f coredns.yaml
+         kubectl apply -f kubernetes-dashboard.yaml
+         kubectl apply -f ingress-controller.yaml
+
+- name: Replace dashboard cert
+  shell: |
+         kubectl delete secret kubernetes-dashboard-certs -n kubernetes-dashboard |true
+         kubectl create secret generic kubernetes-dashboard-certs \
+         --from-file={{ k8s_work_dir }}/ssl/server-key.pem --from-file={{ k8s_work_dir }}/ssl/server.pem -n kubernetes-dashboard
+         kubectl apply -f {{ tmp_dir }}/kubernetes-dashboard.yaml
+
+- name: View pod status
+  shell: kubectl get all --all-namespaces
+  register: getall
+- debug: var=getall.stdout_lines
+
+- name: 创建Dashboard管理员令牌
+  ignore_errors: yes 
+  shell: |
+         kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard
+         kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin
+
+- name: 获取Dashboard管理员令牌
+  ignore_errors: yes
+  shell: |
+         web='https://NodeIP:30001'
+         token=$(kubectl describe secrets -n kubernetes-dashboard \
+         $(kubectl get secret -n kubernetes-dashboard | awk '/dashboard-admin/{print $1}') |awk '/^token/{print $2}')
+         echo "访问地址--->$web"
+         echo "令牌内容--->$token" 
+  register: ui
+- name: Kubernetes Dashboard登录信息
+  debug: var=ui.stdout_lines

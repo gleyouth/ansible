@@ -1,0 +1,79 @@
+---
+- name: Create working directory
+  file: dest={{ k8s_work_dir }}/{{ item }} state=directory
+  with_items: 
+    - bin
+    - cfg
+    - ssl
+    - logs
+
+- name: Create etcd cert directory
+  file: dest={{ k8s_work_dir }}/ssl/etcd state=directory
+
+- name: Create temporary
+  file: dest={{ tem_dir }} state=directory
+
+- name: Distribute and unzip the binary package
+  unarchive: src={{ item }} dest={{ tem_dir }}
+  with_fileglob: 
+    - "{{ software_dir }}/kubernetes/kubernetes-*.tar.gz"
+
+- name: Mobile k8s master binary file
+  shell: cp -rf {{ tem_dir }}/kubernetes/server/bin/{kube-apiserver,kube-controller-manager,kube-scheduler} {{ k8s_work_dir }}/bin && \ 
+         cp -rf {{ tem_dir }}/kubernetes/server/bin/kubectl /usr/bin
+
+- name: Distribute k8s cert
+  copy: src=k8s_cert/{{ item }} dest={{ k8s_work_dir }}/ssl
+  with_items: 
+    - ca.pem
+    - ca-key.pem
+    - server.pem
+    - server-key.pem
+
+- name: Distribute etcd cert
+  copy: src=etcd_cert/{{ item }} dest={{ k8s_work_dir }}/ssl/etcd
+  with_items: 
+    - ca.pem
+    - server.pem
+    - server-key.pem
+
+- name: Distribute token directory
+  copy: src=token.csv dest={{ k8s_work_dir }}/cfg
+
+- name: Distribute k8s configuration file
+  template: src={{ item }} dest={{ k8s_work_dir }}/cfg/{{ item.split('.')[:-1]|join('.') }}
+  with_items: 
+    - kube-apiserver.conf.j2
+    - kube-controller-manager.conf.j2
+    - kube-scheduler.conf.j2
+
+- name: Distribute service directory
+  template: src={{ item }} dest=/usr/lib/systemd/system/{{ item.split('.')[:-1]|join('.') }}
+  with_items: 
+    - kube-apiserver.service.j2
+    - kube-controller-manager.service.j2
+    - kube-scheduler.service.j2
+
+- name: Start k8s master components
+  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  with_items: 
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler
+
+- name: View cluster status
+  shell: sleep 5 && kubectl get cs
+  register: cs
+- debug: var=cs.stdout_lines
+
+- name: Copy RBAC directory
+  copy: src={{ item }} dest={{ tem_dir }}
+  with_items: 
+    - kubelet-bootstrap-rbac.yaml
+    - apiserver-to-kubelet-rbac.yaml
+
+- name: Authorization APIserver access kubelet and authorization kubelet or bootstrap
+  ignore_errors: yes
+  shell: kubectl apply -f {{ tem_dir }}/apiserver-to-kubelet-rbac.yaml && \
+         kubectl apply -f {{ tem_dir }}/kubelet-bootstrap-rbac.yaml
+
